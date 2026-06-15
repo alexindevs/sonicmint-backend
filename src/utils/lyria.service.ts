@@ -1,4 +1,8 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI } from '@google/genai';
 
@@ -23,11 +27,19 @@ export class LyriaService {
   }
 
   async generateTrack(params: GenerateParams): Promise<Buffer> {
-    const prompt = this.buildPrompt(params);
-    this.logger.log(`Calling Lyria Pro: "${prompt.slice(0, 80)}..."`);
+    return this.callLyria('lyria-3-pro-preview', this.buildPrompt(params));
+  }
+
+  async generateClip(params: GenerateParams): Promise<Buffer> {
+    const prompt = this.buildPrompt(params) + '. Instrumental.';
+    return this.callLyria('lyria-3-clip-preview', prompt);
+  }
+
+  private async callLyria(model: string, prompt: string): Promise<Buffer> {
+    this.logger.log(`Calling ${model}: "${prompt.slice(0, 80)}..."`);
 
     const response = await this.ai.models.generateContent({
-      model: 'lyria-3-pro-preview',
+      model,
       contents: prompt,
     });
 
@@ -50,8 +62,6 @@ export class LyriaService {
     if (params.instruments?.length) {
       parts.push(`Instruments: ${params.instruments.join(', ')}`);
     }
-
-    parts.push('Instrumental only, no vocals.');
 
     return parts.join('. ');
   }

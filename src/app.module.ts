@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { AuthModule } from './modules/auth/auth.module';
 import { TracksModule } from './modules/tracks/tracks.module';
+import { ClipsModule } from './modules/clips/clips.module';
 import { MeModule } from './modules/me/me.module';
 import { StudioModule } from './modules/studio/studio.module';
 import { WorkerModule } from './modules/worker/worker.module';
@@ -24,19 +25,28 @@ import { Track } from './modules/tracks/entities/track.entity';
 import { AudioJob } from './modules/tracks/entities/audio-job.entity';
 import { StreamEvent } from './modules/tracks/entities/stream-event.entity';
 import { Report } from './modules/reports/entities/report.entity';
+import { Clip } from './modules/clips/entities/clip.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, jwtConfig, awsConfig, stripeConfig, revenueConfig, aiConfig, redisConfig],
+      load: [
+        appConfig,
+        jwtConfig,
+        awsConfig,
+        stripeConfig,
+        revenueConfig,
+        aiConfig,
+        redisConfig,
+      ],
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
-        entities: [User, RefreshToken, Track, AudioJob, StreamEvent, Report],
+        entities: [User, RefreshToken, Track, AudioJob, StreamEvent, Report, Clip],
         synchronize: config.get<string>('app.nodeEnv') !== 'production',
         logging: config.get<string>('app.nodeEnv') === 'development',
       }),
@@ -49,6 +59,7 @@ import { Report } from './modules/reports/entities/report.entity';
     }),
     AuthModule,
     TracksModule,
+    ClipsModule,
     MeModule,
     StudioModule,
     WorkerModule,

@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { tmpdir } from 'os';
@@ -41,8 +41,17 @@ export class AudioProcessor extends WorkerHost {
   }
 
   async process(job: Job<AudioJobPayload>): Promise<void> {
-    const { jobId, trackId, userId, prompt, genre, mood, bpm, key, instruments } =
-      job.data;
+    const {
+      jobId,
+      trackId,
+      userId,
+      prompt,
+      genre,
+      mood,
+      bpm,
+      key,
+      instruments,
+    } = job.data;
 
     this.logger.log(`Processing audio job ${jobId} for track ${trackId}`);
 
@@ -67,7 +76,11 @@ export class AudioProcessor extends WorkerHost {
 
       // 3. Upload full track to S3
       const audioKey = `transcoded/${userId}/${trackId}.mp3`;
-      const audioUrl = await this.s3.upload(audioKey, audioBuffer, 'audio/mpeg');
+      const audioUrl = await this.s3.upload(
+        audioKey,
+        audioBuffer,
+        'audio/mpeg',
+      );
 
       // 4. Cut 30s preview with ffmpeg
       await this.cutPreview(rawPath, previewPath);
@@ -76,21 +89,35 @@ export class AudioProcessor extends WorkerHost {
 
       // 5. Upload preview to S3
       const previewKey = `previews/${userId}/${trackId}-preview.mp3`;
-      const previewUrl = await this.s3.upload(previewKey, previewBuffer, 'audio/mpeg');
+      const previewUrl = await this.s3.upload(
+        previewKey,
+        previewBuffer,
+        'audio/mpeg',
+      );
 
       // 6. Update track record
       await this.tracksRepo.update(trackId, { audioUrl, previewUrl });
-      await this.audioJobsRepo.update(jobId, { status: JobStatus.DONE, s3Mp3Key: audioKey, s3PreviewKey: previewKey });
+      await this.audioJobsRepo.update(jobId, {
+        status: JobStatus.DONE,
+        s3Mp3Key: audioKey,
+        s3PreviewKey: previewKey,
+      });
 
       this.logger.log(`Job ${jobId} completed successfully`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const raw = err instanceof Error ? err : new Error(String(err));
+      const message = raw.message;
       this.logger.error(`Job ${jobId} failed: ${message}`);
       await this.audioJobsRepo.update(jobId, {
         status: JobStatus.FAILED,
         errorMsg: message,
       });
-      throw err;
+      // Don't retry quota errors or auth errors — they won't self-heal
+      const isUnrecoverable =
+        message.includes('RESOURCE_EXHAUSTED') ||
+        message.includes('PERMISSION_DENIED') ||
+        message.includes('INVALID_ARGUMENT');
+      throw isUnrecoverable ? new UnrecoverableError(message) : raw;
     } finally {
       await Promise.allSettled([unlink(rawPath), unlink(previewPath)]);
     }
