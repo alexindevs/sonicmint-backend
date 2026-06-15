@@ -14,12 +14,13 @@ export class AdminService {
   ) {}
 
   async getStats() {
-    const [totalTracks, totalUsers, totalReports, openReports] = await Promise.all([
-      this.tracksRepo.count(),
-      this.usersRepo.count(),
-      this.reportsRepo.count(),
-      this.reportsRepo.count({ where: { status: ReportStatus.OPEN } }),
-    ]);
+    const [totalTracks, totalUsers, totalReports, openReports] =
+      await Promise.all([
+        this.tracksRepo.count(),
+        this.usersRepo.count(),
+        this.reportsRepo.count(),
+        this.reportsRepo.count({ where: { status: ReportStatus.OPEN } }),
+      ]);
 
     const revenueResult = await this.tracksRepo
       .createQueryBuilder('t')
@@ -50,7 +51,9 @@ export class AdminService {
     });
     if (!report) throw new NotFoundException('Report not found');
 
-    await this.tracksRepo.update(report.trackId, { status: TrackStatus.TAKEN_DOWN });
+    await this.tracksRepo.update(report.trackId, {
+      status: TrackStatus.TAKEN_DOWN,
+    });
     await this.reportsRepo.update(reportId, {
       status: ReportStatus.TAKEN_DOWN,
       resolvedBy: adminId,
@@ -109,7 +112,10 @@ export class AdminService {
       weekStart.setHours(0, 0, 0, 0);
       const key = weekStart.toISOString().slice(0, 10);
       const match = rows.find((r) => r.week.slice(0, 10) === key);
-      return { week: `W${i + 1}`, signups: match ? parseInt(match.count, 10) : 0 };
+      return {
+        week: `W${i + 1}`,
+        signups: match ? parseInt(match.count, 10) : 0,
+      };
     });
   }
 }

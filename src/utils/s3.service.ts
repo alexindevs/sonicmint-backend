@@ -20,7 +20,8 @@ export class S3Service {
 
   constructor(private configService: ConfigService) {
     const accessKeyId = configService.get<string>('aws.accessKeyId') ?? '';
-    const secretAccessKey = configService.get<string>('aws.secretAccessKey') ?? '';
+    const secretAccessKey =
+      configService.get<string>('aws.secretAccessKey') ?? '';
 
     this.useLocal = !accessKeyId || !secretAccessKey;
 
@@ -29,7 +30,8 @@ export class S3Service {
       credentials: { accessKeyId, secretAccessKey },
     });
 
-    this.bucket = configService.get<string>('aws.s3Bucket') ?? 'sonicmint-audio';
+    this.bucket =
+      configService.get<string>('aws.s3Bucket') ?? 'sonicmint-audio';
     this.cdnBaseUrl =
       configService.get<string>('aws.cdnBaseUrl') ?? 'https://cdn.sonicmint.io';
 
@@ -37,11 +39,17 @@ export class S3Service {
     this.localBaseUrl = `http://localhost:${port}/uploads`;
 
     if (this.useLocal) {
-      this.logger.warn('AWS credentials not set — audio will be stored locally under uploads/');
+      this.logger.warn(
+        'AWS credentials not set — audio will be stored locally under uploads/',
+      );
     }
   }
 
-  async upload(key: string, buffer: Buffer, contentType: string): Promise<string> {
+  async upload(
+    key: string,
+    buffer: Buffer,
+    contentType: string,
+  ): Promise<string> {
     if (this.useLocal) {
       const dest = join(process.cwd(), 'uploads', key);
       await mkdir(dirname(dest), { recursive: true });
@@ -71,7 +79,11 @@ export class S3Service {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return getSignedUrl(
       this.client as any,
-      new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType }) as any,
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType,
+      }) as any,
       { expiresIn },
     );
   }

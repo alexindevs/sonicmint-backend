@@ -10,10 +10,11 @@ export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
 
   @Post('presign')
-  presign(
-    @Body() dto: PresignDto,
-    @CurrentUser() user: { id: string },
-  ) {
-    return this.uploadsService.presignCoverUpload(user.id, dto.filename, dto.contentType);
+  presign(@Body() dto: PresignDto, @CurrentUser() user: { id: string }) {
+    return this.uploadsService.presignCoverUpload(
+      user.id,
+      dto.filename,
+      dto.contentType,
+    );
   }
 }

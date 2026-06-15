@@ -30,7 +30,8 @@ export class StudioService {
 
   async generate(dto: GenerateDto, user: User) {
     const cover =
-      dto.cover ?? COVER_GRADIENTS[Math.floor(Math.random() * COVER_GRADIENTS.length)];
+      dto.cover ??
+      COVER_GRADIENTS[Math.floor(Math.random() * COVER_GRADIENTS.length)];
 
     const track = this.tracksRepo.create({
       title: dto.title ?? 'Untitled',

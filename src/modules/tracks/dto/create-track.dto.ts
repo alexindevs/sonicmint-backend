@@ -1,7 +1,15 @@
-import { IsString, IsInt, IsPositive, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsInt,
+  IsPositive,
+  Min,
+  Max,
+  IsNotEmpty,
+} from 'class-validator';
 
 export class CreateTrackDto {
   @IsString()
+  @IsNotEmpty()
   title: string;
 
   @IsString()

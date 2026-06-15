@@ -33,7 +33,12 @@ export class MeService {
       audioUrl: t.audioUrl ?? null,
       previewUrl: t.previewUrl ?? null,
       cover: t.coverGradient,
-      status: t.status === 'PUBLISHED' ? 'Published' : t.status === 'TAKEN_DOWN' ? 'Taken down' : 'Draft',
+      status:
+        t.status === 'PUBLISHED'
+          ? 'Published'
+          : t.status === 'TAKEN_DOWN'
+            ? 'Taken down'
+            : 'Draft',
       streams: t.streams,
       revenueGbp: t.revenueGbp,
       releasedAt: t.releasedAt?.toISOString().slice(0, 10) ?? null,
@@ -46,8 +51,10 @@ export class MeService {
     const totalStreams = tracks.reduce((sum, t) => sum + t.streams, 0);
     const totalRevenueGbp = tracks.reduce((sum, t) => sum + t.revenueGbp, 0);
 
-    const royaltyRate = this.configService.get<number>('revenue.royaltyRateGbp') ?? 0.004;
-    const platformFee = this.configService.get<number>('revenue.platformFeePct') ?? 15;
+    const royaltyRate =
+      this.configService.get<number>('revenue.royaltyRateGbp') ?? 0.004;
+    const platformFee =
+      this.configService.get<number>('revenue.platformFeePct') ?? 15;
     const pendingPayoutGbp = parseFloat(
       (totalStreams * royaltyRate * (1 - platformFee / 100)).toFixed(2),
     );
@@ -57,9 +64,7 @@ export class MeService {
       null as Track | null,
     );
 
-    const streamHistory = await this.getStreamHistory(
-      tracks.map((t) => t.id),
-    );
+    const streamHistory = await this.getStreamHistory(tracks.map((t) => t.id));
 
     return {
       totalStreams,
@@ -76,12 +81,16 @@ export class MeService {
     const tracks = await this.tracksRepo.find({ where: { userId: user.id } });
     const totalStreams = tracks.reduce((sum, t) => sum + t.streams, 0);
 
-    const royaltyRate = this.configService.get<number>('revenue.royaltyRateGbp') ?? 0.004;
-    const platformFee = this.configService.get<number>('revenue.platformFeePct') ?? 15;
+    const royaltyRate =
+      this.configService.get<number>('revenue.royaltyRateGbp') ?? 0.004;
+    const platformFee =
+      this.configService.get<number>('revenue.platformFeePct') ?? 15;
     const totalEarned = totalStreams * royaltyRate * (1 - platformFee / 100);
 
     const nextPayoutDate = new Date();
-    nextPayoutDate.setDate(nextPayoutDate.getDate() + (7 - nextPayoutDate.getDay()));
+    nextPayoutDate.setDate(
+      nextPayoutDate.getDate() + (7 - nextPayoutDate.getDay()),
+    );
 
     return {
       stripeConnected: user.stripeOnboarded,
@@ -93,7 +102,10 @@ export class MeService {
 
   private async getStreamHistory(trackIds: string[]) {
     if (!trackIds.length) {
-      return Array.from({ length: 30 }, (_, i) => ({ day: `Day ${i + 1}`, streams: 0 }));
+      return Array.from({ length: 30 }, (_, i) => ({
+        day: `Day ${i + 1}`,
+        streams: 0,
+      }));
     }
 
     const since = new Date();
@@ -102,7 +114,7 @@ export class MeService {
 
     const rows = await this.streamEventsRepo
       .createQueryBuilder('se')
-      .select("DATE(se.timestamp)", 'date')
+      .select('DATE(se.timestamp)', 'date')
       .addSelect('COUNT(*)', 'count')
       .where('se.trackId IN (:...trackIds)', { trackIds })
       .andWhere('se.timestamp >= :since', { since })
